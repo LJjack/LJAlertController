@@ -32,6 +32,7 @@
 @property (nonatomic, strong) NSMutableArray<LJAlertAction *> *actionList;
 @property (nonatomic, copy) NSString *headline;
 @property (nonatomic, copy) NSString *message;
+@property (nonatomic) UIAlertControllerStyle preferredStyle;
 
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UIScrollView *scrollView;
@@ -45,10 +46,11 @@
 
 @implementation LJAlertController
 
-+ (instancetype)alertControllerWithTitle:(nullable NSString *)title message:(nullable NSString *)message{
++ (instancetype)alertControllerWithTitle:(nullable NSString *)title message:(nullable NSString *)message preferredStyle:(UIAlertControllerStyle)preferredStyle {
     LJAlertController *alert = [[LJAlertController alloc]init];
     alert.headline = title;
     alert.message = message;
+    alert.preferredStyle = preferredStyle;
     alert.modalPresentationStyle = UIModalPresentationCustom;
     alert.transitioningDelegate = alert;
     alert.actionList = [NSMutableArray array];
@@ -77,20 +79,36 @@
     [self.contentView addSubview:self.stackView];
     [self.contentView addSubview:self.lineView];
     NSInteger listCount = _actionList.count;
-    for (NSInteger idx = 0; idx < listCount; idx ++) {
-        LJAlertAction *action = _actionList[idx];
-        UIButton *btn = [self createBtn:action.title tag:idx];
-        action.btnView = btn;
-        UIView *separatorView = [[UIView alloc] init];
-        separatorView.backgroundColor = [UIColor colorWithWhite:229.00/255.00 alpha:1.0];
-        separatorView.translatesAutoresizingMaskIntoConstraints = NO;
-        [self.stackView addArrangedSubview:btn];
-        [self.stackView addArrangedSubview:separatorView];
-        if (idx > 0) {
-            [self.stackView addConstraint:[NSLayoutConstraint constraintWithItem:_actionList[idx - 1].btnView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:_actionList[idx].btnView attribute:NSLayoutAttributeWidth multiplier:1.0 constant:0.0]];
+    if (listCount > 2) {
+        self.stackView.axis = UILayoutConstraintAxisVertical;
+        for (NSInteger idx = 0; idx < listCount; idx ++) {
+            LJAlertAction *action = _actionList[idx];
+            UIButton *btn = [self createBtn:action.title tag:idx];
+            action.btnView = btn;
+            [self.stackView addArrangedSubview:btn];
+            if (idx > 0) {
+                [btn.heightAnchor constraintEqualToConstant:44.0].active = YES;
+            }
+            if (idx <= listCount - 1) {
+                UIView *separatorView = [self createSeparatorView];
+                [self.stackView addArrangedSubview:separatorView];
+                [separatorView.heightAnchor constraintEqualToConstant:0.5].active = YES;
+            }
         }
-        if (idx <= listCount - 1) {
-            [self.stackView addConstraint:[NSLayoutConstraint constraintWithItem:separatorView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:0.5]];
+    } else {
+        for (NSInteger idx = 0; idx < listCount; idx ++) {
+            LJAlertAction *action = _actionList[idx];
+            UIButton *btn = [self createBtn:action.title tag:idx];
+            action.btnView = btn;
+            [self.stackView addArrangedSubview:btn];
+            if (idx > 0) {
+                [btn.widthAnchor constraintEqualToAnchor:_actionList[idx - 1].btnView.widthAnchor].active = YES;
+            }
+            if (idx <= listCount - 1) {
+                UIView *separatorView = [self createSeparatorView];
+                [self.stackView addArrangedSubview:separatorView];
+                [separatorView.widthAnchor constraintEqualToConstant:0.5].active = YES;
+            }
         }
     }
     [self addConstraints];
@@ -98,46 +116,54 @@
 
 - (void)addConstraints {
     //contentView
-    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0]];
-    [self.view addConstraint: [NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterY multiplier:1.0 constant:0]];
-    [self.view addConstraint: [NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:270]];
-    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationGreaterThanOrEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:20.0]];
-    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationLessThanOrEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1.0 constant:-20.0]];
-    //scrollView
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeTop multiplier:1.0 constant:0]];//top
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:20]];//left
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant:-20]];//right
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.stackView attribute:NSLayoutAttributeTop multiplier:1.0 constant:0]];
+    [self.contentView.topAnchor constraintGreaterThanOrEqualToAnchor:self.view.topAnchor constant:20.0].active = YES;// >=top
+    if (self.preferredStyle == UIAlertControllerStyleAlert) {
+        [self.contentView.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;//centerX
+        [self.contentView.widthAnchor constraintEqualToConstant:270].active = YES;//width
+        [self.contentView.bottomAnchor constraintLessThanOrEqualToAnchor:self.view.bottomAnchor constant:-20.0].active = YES;// <=bottom
+        [self.contentView.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor].active = YES;//centerY
+    } else {
+        [self.contentView.leftAnchor constraintEqualToAnchor:self.view.leftAnchor constant:10].active = YES;
+        [self.contentView.rightAnchor constraintEqualToAnchor:self.view.rightAnchor constant:-10].active = YES;
+        [self.contentView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-10].active = YES;//bottom
+    }
     
+    //scrollView
+    [self.scrollView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor].active = YES;//top
+    [self.scrollView.leftAnchor constraintEqualToAnchor:self.contentView.leftAnchor constant:20].active = YES;//left
+    [self.scrollView.rightAnchor constraintEqualToAnchor:self.contentView.rightAnchor constant:-20].active = YES;//right
+    [self.scrollView.bottomAnchor constraintEqualToAnchor:self.stackView.topAnchor].active = YES;
     //scrollContentView
-    [self.scrollView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollContentView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.scrollView attribute:NSLayoutAttributeTop multiplier:1.0 constant:0]];//top
-    [self.scrollView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollContentView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.scrollView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];//left
-    [self.scrollView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollContentView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.scrollView attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0]];//bottom
-    [self.scrollView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollContentView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.scrollView attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];//right
-    [self.scrollView addConstraint:[NSLayoutConstraint constraintWithItem:self.scrollContentView attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.scrollView attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0]];//centerX
-    NSLayoutConstraint *contentViewHeight = [NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeHeight multiplier:1.0 constant:44];
+    [self.scrollContentView.topAnchor constraintEqualToAnchor:self.scrollView.topAnchor].active = YES;//top
+    [self.scrollContentView.leftAnchor constraintEqualToAnchor:self.scrollView.leftAnchor].active = YES;//left
+    [self.scrollContentView.bottomAnchor constraintEqualToAnchor:self.scrollView.bottomAnchor].active = YES;//bottom
+    [self.scrollContentView.rightAnchor constraintEqualToAnchor:self.scrollView.rightAnchor].active = YES;//right
+    [self.scrollContentView.widthAnchor constraintEqualToAnchor:self.scrollView.widthAnchor].active = YES;//width
+    NSLayoutConstraint *contentViewHeight = [NSLayoutConstraint constraintWithItem:self.contentView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeHeight multiplier:1.0 constant:(_actionList.count > 2?_actionList.count:1)*44.5];
     contentViewHeight.priority = UILayoutPriorityDefaultLow;
     [self.view addConstraint:contentViewHeight];
     //titleLabel
-    [self.scrollContentView addConstraint:[NSLayoutConstraint constraintWithItem:self.titleLabel attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];//left
-    [self.scrollContentView addConstraint: [NSLayoutConstraint constraintWithItem:self.titleLabel attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];//right
-    [self.scrollContentView addConstraint: [NSLayoutConstraint constraintWithItem:self.titleLabel attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeTop multiplier:1.0 constant:20]];//top
+    [self.titleLabel.leftAnchor constraintEqualToAnchor:self.scrollContentView.leftAnchor].active = YES;//left
+    [self.titleLabel.rightAnchor constraintEqualToAnchor:self.scrollContentView.rightAnchor].active = YES;//right
+    [self.titleLabel.topAnchor constraintEqualToAnchor:self.scrollContentView.topAnchor constant:20.0].active = YES;//top
     //messageLabel
-    [self.scrollContentView addConstraint: [NSLayoutConstraint constraintWithItem:self.messageLabel attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.titleLabel attribute:NSLayoutAttributeBottom multiplier:1.0 constant:5]];
-    [self.scrollContentView addConstraint:[NSLayoutConstraint constraintWithItem:self.messageLabel attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];
-    [self.scrollContentView addConstraint: [NSLayoutConstraint constraintWithItem:self.messageLabel attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];
-    [self.scrollContentView addConstraint: [NSLayoutConstraint constraintWithItem:self.messageLabel attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.scrollContentView attribute:NSLayoutAttributeBottom multiplier:1.0 constant:-20]];
+    [self.messageLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:5].active = YES;
+    [self.messageLabel.leftAnchor constraintEqualToAnchor:self.scrollContentView.leftAnchor].active = YES;
+    [self.messageLabel.rightAnchor constraintEqualToAnchor:self.scrollContentView.rightAnchor].active = YES;
+    [self.messageLabel.bottomAnchor constraintEqualToAnchor:self.scrollContentView.bottomAnchor constant:-20].active = YES;
     //stackView
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.stackView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.stackView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.stackView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeBottom multiplier:1.0 constant:0]];
-    [self.stackView addConstraint:[NSLayoutConstraint constraintWithItem:self.stackView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:44.0]];
-    
+    [self.stackView.leftAnchor constraintEqualToAnchor:self.contentView.leftAnchor].active = YES;//left
+    [self.stackView.rightAnchor constraintEqualToAnchor:self.contentView.rightAnchor].active = YES;//right
+    [self.stackView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor].active = YES;//bottom
+    if (_actionList.count <= 2) {
+        [self.stackView.heightAnchor constraintEqualToConstant:44.0].active = YES;//height
+    }
     //lineView
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.lineView attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0]];//left
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.lineView attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:self.contentView attribute:NSLayoutAttributeRight multiplier:1.0 constant:0]];//right
-    [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:self.lineView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.stackView attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0]];//top
-    [self.lineView addConstraint:[NSLayoutConstraint constraintWithItem:self.lineView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:0.5]];//height
+    [self.lineView.leftAnchor constraintEqualToAnchor:self.contentView.leftAnchor].active = YES;//left
+    [self.lineView.rightAnchor constraintEqualToAnchor:self.contentView.rightAnchor].active = YES;//right
+    [self.lineView.bottomAnchor constraintEqualToAnchor:self.stackView.topAnchor].active = YES;//bottom
+    [self.lineView.heightAnchor constraintEqualToConstant:0.5].active = YES;//height
+    
 }
 
 - (UIButton *)createBtn:(NSString *)name tag:(NSInteger)tag {
@@ -150,8 +176,14 @@
     return btn;
 }
 
+- (UIView *)createSeparatorView {
+    UIView *separatorView = [[UIView alloc] init];
+    separatorView.backgroundColor = [UIColor colorWithWhite:229.00/255.00 alpha:1.0];
+    separatorView.translatesAutoresizingMaskIntoConstraints = NO;
+    return separatorView;
+}
+
 - (void)clickBtnAction:(UIButton *)sender {
-    
     LJAlertAction *action = _actionList[sender.tag];
     if (action.handler) {
         action.handler(action);
@@ -169,15 +201,14 @@
     BJAlertAnimation *animation = [[BJAlertAnimation alloc] init];
     animation.contentView = self.contentView;
     return animation;
-    
 }
 
 - (UIView *)contentView {
     if (!_contentView) {
         _contentView = [[UIView alloc] init];
         _contentView.backgroundColor = [UIColor whiteColor];
-        _contentView.layer.cornerRadius = 10;
         _contentView.translatesAutoresizingMaskIntoConstraints = NO;
+        _contentView.layer.cornerRadius = 10;
     }
     return _contentView;
 }
@@ -235,9 +266,7 @@
 
 - (UIView *)lineView {
     if (!_lineView) {
-        _lineView = [[UIView alloc] init];
-        _lineView.backgroundColor = [UIColor colorWithWhite:229.00/255.00 alpha:1.0];
-        _lineView.translatesAutoresizingMaskIntoConstraints = NO;
+        _lineView = [self createSeparatorView];
     }
     return _lineView;
 }

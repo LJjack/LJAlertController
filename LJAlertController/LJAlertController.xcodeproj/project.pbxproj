@@ -82,9 +82,9 @@
 			isa = PBXGroup;
 			children = (
 				83710B562100690300BF68F7 /* BJAlertAnimation.h */,
-				83710B572100690300BF68F7 /* LJAlertController.m */,
 				83710B582100690300BF68F7 /* BJAlertAnimation.m */,
 				83710B592100690300BF68F7 /* LJAlertController.h */,
+				83710B572100690300BF68F7 /* LJAlertController.m */,
 			);
 			path = LJAlert;
 			sourceTree = "<group>";

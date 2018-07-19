@@ -21,8 +21,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface LJAlertController : UIViewController
 
 @property (nonatomic, readonly, copy) NSArray<LJAlertAction *> *actions;
+@property (nonatomic, readonly) UIAlertControllerStyle preferredStyle;
 
-+(instancetype)alertControllerWithTitle:(nullable NSString *)title message:(nullable NSString *)message;
++(instancetype)alertControllerWithTitle:(nullable NSString *)title message:(nullable NSString *)message  preferredStyle:(UIAlertControllerStyle)preferredStyle;
 
 - (void)addAction:(LJAlertAction *)action;
 
